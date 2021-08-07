@@ -81,11 +81,7 @@ export class Queue implements IQueue {
         } else {
             this.client.bindQueue(exchange, this.name, '', routingArg);
             const hp = new HeadersPattern(routingArg);
-            if (routingArg['x-match'] === 'all') {
-                cons.matchHeaders = hp.matchAll.bind(hp);
-            } else {
-                cons.matchHeaders = hp.matchAny.bind(hp);
-            }
+            cons.matchHeaders = hp.match.bind(hp);
         }
 
         this.consumers.push(cons);
