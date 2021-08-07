@@ -44,7 +44,7 @@ export class Message<T> implements IMessage<T> {
         this.routingKey = amqplibMessage.fields.routingKey;
         for (const key in amqplibMessage.properties.headers) {
             if (key.startsWith('x-') || key.startsWith('X-')) {
-                this.xHeaders[key.slice(2)] = amqplibMessage.properties.headers[key] as unknown;
+                this.xHeaders[key.slice(2).toLowerCase()] = amqplibMessage.properties.headers[key] as unknown;
             } else {
                 this.appHeaders[key] = amqplibMessage.properties.headers[key] as unknown;
             }
