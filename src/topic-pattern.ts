@@ -22,7 +22,7 @@ export class TopicPattern {
         if (!this.matchFixed(this.fixedPatterns[0], rkWords)) {
             return false;
         }
-        if (this.fixedPatterns.length === 0) {
+        if (this.fixedPatterns.length === 1) {
             return this.fixedPatterns[0].length === rkWords.length;
         }
 
