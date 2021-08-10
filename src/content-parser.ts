@@ -10,11 +10,6 @@ export function charsetParser(input: Buffer, charset?: string): string {
             return input.toString('utf8');
         case 'utf-16le':
             return input.toString('utf16le');
-        case 'utf-16':
-            if (input[0] === 0xFF && input[1] === 0xFE) {
-                return input.toString('utf16le');
-            }
-            break;
         case 'us-ascii':
             return input.toString('ascii');
         case 'iso-8859-1':
