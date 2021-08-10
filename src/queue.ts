@@ -4,12 +4,11 @@ import { Client, IQueueOptionsStrict } from './client';
 import { ChannelHandler } from './channel-handler';
 import { ParseContent } from './content-parser';
 import { Message, IMessageHeaders } from './message';
-import { TopicPattern } from './topic-pattern';
-import { HeadersPattern } from './headers-pattern';
+import { TopicPattern } from '@artie-owlet/amqp-routing-match';
+import { HeadersPattern } from '@artie-owlet/amqp-routing-match';
 import { IQueue, IQueueOptions, ConsumeMiddleware, IRoutingHeaders } from './types';
 
 interface IConsumer {
-    exchange: string;
     matchRoutingKey?: (r: string) => boolean;
     matchHeaders?: (r: IMessageHeaders) => boolean;
     mw: ConsumeMiddleware<any>;
@@ -27,9 +26,8 @@ function mergeQueueOpts(opts: IQueueOptions | undefined, defaultOpts: IQueueOpti
 
 const namedQueueOptions: IQueueOptionsStrict = {
     declare: {
-        exclusive: false,
         durable: true,
-        autoDelete: true,
+        autoDelete: false,
     },
     consume: {
         noAck: false,
@@ -42,8 +40,8 @@ export class Queue implements IQueue {
     private consumers = [] as IConsumer[];
     private defaultMiddleware?: ConsumeMiddleware<any>;
 
-    constructor(client: Client, parseContent: ParseContent, name: string, opts?: IQueueOptions);
-    constructor(client: Client, parseContent: ParseContent, noAck?: boolean);
+    constructor(client: Client, parseContent: ParseContent, name: string, opts: IQueueOptions | undefined);
+    constructor(client: Client, parseContent: ParseContent, noAck: boolean | undefined);
     constructor(
         private client: Client,
         private parseContent: ParseContent,
@@ -52,7 +50,8 @@ export class Queue implements IQueue {
             this.name = args[0];
             this.client.declareQueue(this.name, mergeQueueOpts(args[1] as IQueueOptions, namedQueueOptions), this.onMessage.bind(this));
         } else {
-            this.name = this.client.declareTmpQueue(this.onMessage.bind(this), args[0] as boolean | undefined);
+            const noAck = args[0] as boolean | undefined;
+            this.name = this.client.declareTmpQueue(this.onMessage.bind(this), noAck === undefined ? true : noAck);
         }
     }
 
@@ -61,10 +60,9 @@ export class Queue implements IQueue {
     }
 
     public consumeRouting<T = any>(mw: ConsumeMiddleware<T>, exchange: string, routingArg: string | IRoutingHeaders): void {
-        const cons = {
-            exchange,
+        const cons: IConsumer = {
             mw,
-        } as IConsumer;
+        };
 
         if (typeof routingArg === 'string') {
             this.client.bindQueue(exchange, this.name, routingArg);
@@ -95,9 +93,6 @@ export class Queue implements IQueue {
 
         const msg = new Message(amqplibMessage, chanHandler, this.parseContent);
         const cons = this.consumers.find((cons) => {
-            if (cons.exchange !== msg.exchange) {
-                return false;
-            }
             if (cons.matchRoutingKey) {
                 return cons.matchRoutingKey(msg.routingKey);
             }

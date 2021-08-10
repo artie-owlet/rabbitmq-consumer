@@ -1,6 +1,7 @@
 import EventEmitter from 'events';
+import { URL } from 'url';
 
-import { ConnectionWrapper, IConnectOptions } from '@artie-owlet/amqplib-wrapper';
+import { ConnectionWrapper } from '@artie-owlet/amqplib-wrapper';
 
 import { Client } from './client';
 import { ContentDecoder, ContentMimeTypeParser, ContentParser } from './content-parser';
@@ -12,6 +13,7 @@ import {
 } from './exchange';
 import { Queue } from './queue';
 import {
+    IConsumeManagerOptions,
     IConsumeManager,
     IExchangeOptions,
     IFanoutExchange,
@@ -27,24 +29,36 @@ export class ConsumeManager extends EventEmitter implements IConsumeManager {
     private client: Client;
     private contentParser = new ContentParser();
 
-    constructor(conn: ConnectionWrapper);
-    constructor(connectOptions: string | IConnectOptions, socketOptions?: any);
+    constructor(conn: ConnectionWrapper, passive?: boolean);
+    constructor(connectOptions: string | IConsumeManagerOptions, socketOptions?: any);
     constructor(...args: any[]) {
         super();
 
         let conn: ConnectionWrapper;
+        let passive: boolean;
         if (args[0] instanceof ConnectionWrapper) {
             conn = args[0];
-        } else if (typeof args[0] === 'string' || typeof args[0] === 'object') {
-            conn = new ConnectionWrapper(args[0], args[1]);
-            conn.on('error', err => this.emit('error', err));
+            passive = args[1] === undefined ? false : args[1] as boolean;
         } else {
-            throw new TypeError('invalid arguments for new ConsumeManager()');
+            const opts = args[0] as string | IConsumeManagerOptions;
+            conn = new ConnectionWrapper(opts, args[1]);
+            conn.on('error', err => this.emit('error', err));
+
+            if (typeof opts === 'string') {
+                const url = new URL(opts);
+                if (url.searchParams.has('passive')) {
+                    passive = Boolean(url.searchParams.get('passive'));
+                } else {
+                    passive = false;
+                }
+            } else {
+                passive = opts.passive === undefined ? false : opts.passive;
+            }
         }
         const chan = conn.createChannelWrapper();
         chan.on('error', err => this.emit('error', err));
 
-        this.client = new Client(chan);
+        this.client = new Client(chan, passive);
         this.client.on('setup-failed', err => this.emit('setup-failed', err));
     }
 

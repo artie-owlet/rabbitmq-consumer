@@ -1,11 +1,12 @@
 import { Options as AmqplibOptions } from 'amqplib';
+import { IConnectOptions } from '@artie-owlet/amqplib-wrapper';
 
 import { IMessage, IMessageHeaders } from './message';
 import { ContentDecoder, ContentMimeTypeParser } from './content-parser';
 
 export type IExchangeOptions = Pick<AmqplibOptions.AssertExchange, 'internal' | 'durable' | 'autoDelete'>;
 
-export type IQueueDeclareOptions = Pick<AmqplibOptions.AssertQueue, 'exclusive' | 'durable' | 'autoDelete'>;
+export type IQueueDeclareOptions = Pick<AmqplibOptions.AssertQueue, 'durable' | 'autoDelete'>;
 export type IQueueConsumeOptions = Pick<AmqplibOptions.Consume, 'consumerTag' | 'noAck' | 'exclusive' | 'priority'>;
 export interface IQueueOptions {
     declare?: IQueueDeclareOptions;
@@ -14,6 +15,10 @@ export interface IQueueOptions {
 
 export interface IRoutingHeaders extends IMessageHeaders {
     'x-match': 'all' | 'any';
+}
+
+export interface IConsumeManagerOptions extends IConnectOptions {
+    passive?: boolean;
 }
 
 export interface IConsumeManager {
@@ -42,7 +47,7 @@ export interface IQueue {
 export interface IFanoutExchange {
     consume<T = any>(queue: string, mw: ConsumeMiddleware<T>, options?: IQueueOptions): void;
     consume<T = any>(queue: IQueue, mw: ConsumeMiddleware<T>): void;
-    consume<T = any>(mw: ConsumeMiddleware<T>, options?: IQueueOptions): void;
+    consume<T = any>(mw: ConsumeMiddleware<T>, noAck?: boolean): void;
     fanout(exchange: string, options?: IExchangeOptions): IFanoutExchange;
     direct(exchange: string, options?: IExchangeOptions): IDirectExchange;
     topic(exchange: string, options?: IExchangeOptions): ITopicExchange;

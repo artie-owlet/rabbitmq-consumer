@@ -9,18 +9,18 @@ export interface IMessageHeaders {
 
 export interface IMessage<T> {
     readonly body?: T;
-    readonly parseError?: Error;
+    readonly parseError: string;
     readonly appHeaders: IMessageHeaders;
     readonly xHeaders: IMessageHeaders;
     readonly rawContent: Buffer;
     readonly amqplibMessage: AmqplibMessage;
-    ack(allUpTo: boolean): boolean;
-    nack(requeue: boolean, allUpTo: boolean): boolean;
+    ack(allUpTo?: boolean): boolean;
+    nack(requeue?: boolean, allUpTo?: boolean): boolean;
 }
 
 export class Message<T> implements IMessage<T> {
     public readonly body?: T;
-    public readonly parseError?: Error;
+    public readonly parseError: string;
     public readonly exchange: string;
     public readonly routingKey: string;
     public readonly appHeaders = {} as IMessageHeaders;
@@ -36,8 +36,9 @@ export class Message<T> implements IMessage<T> {
             this.body = parseContent(amqplibMessage.content,
                 amqplibMessage.properties.contentEncoding,
                 amqplibMessage.properties.contentType) as T;
+            this.parseError = 'no error';
         } catch (err) {
-            this.parseError = err instanceof Error ? err : new Error(String(err));
+            this.parseError = err instanceof Error ? err.message : String(err);
         }
 
         this.exchange = amqplibMessage.fields.exchange;

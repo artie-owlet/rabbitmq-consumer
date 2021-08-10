@@ -31,7 +31,7 @@ class Exchange {
         public readonly name: string,
         exType: ExchangeType,
         internal: boolean,
-        opts?: IExchangeOptions,
+        opts: IExchangeOptions | undefined,
     ) {
         this.client.declareExchange(name, exType, Object.assign({}, {
             internal,
@@ -57,22 +57,22 @@ class Exchange {
         }
     }
 
-    protected fanoutImpl(exchange: string, routingArgs: RoutingArgs, options?: IExchangeOptions): IFanoutExchange {
+    protected fanoutImpl(exchange: string, routingArgs: RoutingArgs, options: IExchangeOptions | undefined): IFanoutExchange {
         const e = new FanoutExchange(this.client, this.parseContent, exchange, true, options);
         return this.exchangeImpl(e, routingArgs);
     }
 
-    protected directImpl(exchange: string, routingArgs: RoutingArgs, options?: IExchangeOptions): IDirectExchange {
+    protected directImpl(exchange: string, routingArgs: RoutingArgs, options: IExchangeOptions | undefined): IDirectExchange {
         const e = new DirectExchange(this.client, this.parseContent, exchange, true, options);
         return this.exchangeImpl(e, routingArgs);
     }
 
-    protected topicImpl(exchange: string, routingArgs: RoutingArgs, options?: IExchangeOptions): ITopicExchange {
+    protected topicImpl(exchange: string, routingArgs: RoutingArgs, options: IExchangeOptions | undefined): ITopicExchange {
         const e = new TopicExchange(this.client, this.parseContent, exchange, true, options);
         return this.exchangeImpl(e, routingArgs);
     }
 
-    protected headersImpl(exchange: string, routingArgs: RoutingArgs, options?: IExchangeOptions): IHeadersExchange {
+    protected headersImpl(exchange: string, routingArgs: RoutingArgs, options: IExchangeOptions | undefined): IHeadersExchange {
         const e = new HeadersExchange(this.client, this.parseContent, exchange, true, options);
         return this.exchangeImpl(e, routingArgs);
     }
@@ -104,7 +104,7 @@ export class FanoutExchange extends Exchange implements IFanoutExchange {
 
     public consume<T = any>(queue: string, mw: ConsumeMiddleware<T>, options?: IQueueOptions): void;
     public consume<T = any>(queue: IQueue, mw: ConsumeMiddleware<T>): void;
-    public consume<T = any>(mw: ConsumeMiddleware<T>, options?: IQueueOptions): void;
+    public consume<T = any>(mw: ConsumeMiddleware<T>, noAck?: boolean): void;
     public consume<T = any>(...args: any[]): void {
         if (typeof args[0] === 'string') {
             return super.consumeImpl({

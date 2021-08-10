@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 
 import { IChannelWrapper } from '@artie-owlet/amqplib-wrapper';
-import { Channel, Message as AmqplibMessage} from 'amqplib';
+import { Channel, Message as AmqplibMessage } from 'amqplib';
 
 import { ChannelHandler } from './channel-handler';
 import {
@@ -40,7 +40,7 @@ interface IBinding<T> {
     src: string;
     dest: T;
     routingKey: string;
-    headers?: IRoutingHeaders;
+    headers: IRoutingHeaders | undefined;
     bound: boolean;
 }
 type IExchangeBinding = IBinding<string>;
@@ -60,6 +60,7 @@ export class Client extends EventEmitter {
 
     constructor(
         private chanWrap: IChannelWrapper<Channel>,
+        private passive: boolean,
     ) {
         super();
         chanWrap.on('open', this.onOpen.bind(this));
@@ -79,7 +80,7 @@ export class Client extends EventEmitter {
                 }
             }
         } else {
-            const exData = {
+            const exData: IExchangeData = {
                 exType,
                 opts: options,
                 declared: false,
@@ -105,7 +106,7 @@ export class Client extends EventEmitter {
                 }
             }
         } else {
-            const queueData = {
+            const queueData: IQueueData = {
                 name,
                 opts: options,
                 cb,
@@ -116,12 +117,11 @@ export class Client extends EventEmitter {
         }
     }
 
-    public declareTmpQueue(cb: ConsumeCallback, noAck = true): number {
-        const queueData = {
+    public declareTmpQueue(cb: ConsumeCallback, noAck: boolean): number {
+        const queueData: IQueueData = {
             name: '',
             opts: {
                 declare: {
-                    exclusive: true,
                     durable: false,
                     autoDelete: true,
                 },
@@ -134,7 +134,7 @@ export class Client extends EventEmitter {
             declared: false,
         };
         this.queues.set(++this.tmpQueueId, queueData);
-        this.deferDeclareQueue(queueData);
+        this.deferDeclareTmpQueue(queueData);
         return this.tmpQueueId;
     }
 
@@ -185,7 +185,7 @@ export class Client extends EventEmitter {
         if (typeof queueName === 'string') {
             this.deferDeclareQueue(queueName, queue);
         } else {
-            this.deferDeclareQueue(queue);
+            this.deferDeclareTmpQueue(queue);
         }
 
         this.queueBindings.filter(({dest}) => dest === queueName).forEach((b) => {
@@ -196,26 +196,31 @@ export class Client extends EventEmitter {
 
     private deferDeclareExchange(name: string, exData: IExchangeData): void {
         this.deferSetup(async (chan: Channel): Promise<void> => {
-            await chan.assertExchange(name, exData.exType, exData.opts);
+            if (this.passive) {
+                await chan.checkExchange(name);
+            } else {
+                await chan.assertExchange(name, exData.exType, exData.opts);
+            }
             exData.declared = true;
         });
     }
 
-    private deferDeclareQueue(name: string, queueData: IQueueData): void;
-    private deferDeclareQueue(queueData: IQueueData): void;
-    private deferDeclareQueue(...args: any[]): void {
-        let name: string;
-        let queueData: IQueueData;
-        if (typeof args[0] === 'string') {
-            name = args[0];
-            queueData = args[1] as IQueueData;
-        } else {
-            name = '';
-            queueData = args[0] as IQueueData;
-        }
+    private deferDeclareQueue(name: string, queueData: IQueueData): void {
         this.deferSetup(async (chan: Channel, chanHandler: ChannelHandler): Promise<void> => {
-            const { queue: queueName } = await chan.assertQueue(name, queueData.opts.declare);
-            await chan.consume(queueName, queueData.cb.bind(null, chanHandler), queueData.opts.consume);
+            if (this.passive) {
+                await chan.checkQueue(name);
+            } else {
+                await chan.assertQueue(name, queueData.opts.declare);
+            }
+            await chan.consume(name, queueData.cb.bind(null, chanHandler), queueData.opts.consume);
+            queueData.declared = true;
+        });
+    }
+
+    private deferDeclareTmpQueue(queueData: IQueueData): void {
+        this.deferSetup(async (chan: Channel, chanHandler: ChannelHandler): Promise<void> => {
+            const {queue: name} = await chan.assertQueue('', queueData.opts.declare);
+            await chan.consume(name, queueData.cb.bind(null, chanHandler), queueData.opts.consume);
             queueData.declared = true;
         });
     }
@@ -282,7 +287,7 @@ export class Client extends EventEmitter {
             if (typeof name === 'string') {
                 this.deferDeclareQueue(name, queueData);
             } else {
-                this.deferDeclareQueue(queueData);
+                this.deferDeclareTmpQueue(queueData);
             }
         });
         this.exBindings.forEach((b) => {
