@@ -1,7 +1,7 @@
 {
   "name": "@artie-owlet/rabbitmq-consumer",
   "version": "1.0.0-dev.0",
-  "description": "",
+  "description": "Package for easy consuming messages from RabbitMQ",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -11,13 +11,14 @@
     "build": "tsc",
     "clean": "rm -rf dist/",
     "lint": "eslint --cache --ext .js,.jsx,.ts,.tsx src/ test/",
-    "test": "mocha -r ts-node/register/transpile-only test/*.ts",
-    "coverage": "nyc npm run test"
+    "test": "mocha -r ts-node/register test/*.ts",
+    "coverage": "nyc npm run test",
+    "doc": "typedoc"
   },
   "license": "MIT",
   "dependencies": {
     "@artie-owlet/amqp-routing-match": "^1.0.0",
-    "@artie-owlet/amqplib-wrapper": "^1.0.1"
+    "@artie-owlet/amqplib-wrapper": "^1.2.2"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
@@ -36,6 +37,8 @@
     "nyc": "^15.1.0",
     "qs": "^6.10.1",
     "ts-node": "^10.1.0",
+    "typedoc": "^0.22.6",
+    "typedoc-plugin-markdown": "^3.11.3",
     "typescript": "^4.3.5"
   },
   "repository": {

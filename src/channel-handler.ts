@@ -18,7 +18,7 @@ export class ChannelHandler {
         return false;
     }
 
-    public nack(msg: AmqpMessage, requeue: boolean, allUpTo: boolean): boolean {
+    public nack(msg: AmqpMessage, allUpTo: boolean, requeue: boolean): boolean {
         if(this.chan) {
             this.chan.nack(msg, allUpTo, requeue);
             return true;

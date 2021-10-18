@@ -16,7 +16,7 @@ describe('ContentParser', () => {
         type BufferEncoding = 'ascii' | 'utf8' | 'utf16le' | 'latin1';
         const testTextParser = (charset: string, text: string, jsEnc: BufferEncoding) => {
             it(`should parse "text/plain; charset=${charset}"`, () => {
-                expect(cp.parse(Buffer.from(text, jsEnc), undefined, `text/plain; charset=${charset}`)).equal(text);
+                expect(cp.parse(Buffer.from(text, jsEnc), undefined, `text/plain; charset=${charset}`)).eq(text);
             });
         };
         ([
@@ -24,20 +24,21 @@ describe('ContentParser', () => {
             ['UTF-16LE', 'кролик', 'utf16le'],
             ['US-ASCII', 'rabbit', 'ascii'],
             ['ISO-8859-1', 'lièvre', 'latin1'],
-        ] as [string, string, BufferEncoding][]).forEach(([charset, text, jsEnc]) => testTextParser(charset, text, jsEnc));
+        ] as [string, string, BufferEncoding][])
+            .forEach(([charset, text, jsEnc]) => testTextParser(charset, text, jsEnc));
 
         it('should parse "text/plain"', () => {
-            expect(cp.parse(Buffer.from('кролик'), undefined, 'text/plain')).equal('кролик');
+            expect(cp.parse(Buffer.from('кролик'), undefined, 'text/plain')).eq('кролик');
         });
 
         it('should parse "application/json"', () => {
             const data = {a: 123};
-            expect(cp.parse(Buffer.from(JSON.stringify(data)), undefined, 'application/json')).deep.equal(data);
+            expect(cp.parse(Buffer.from(JSON.stringify(data)), undefined, 'application/json')).deep.eq(data);
         });
 
         it('should return input data if encoding and MIME-type both undefined', () => {
             const data = Buffer.from('rabbit');
-            expect(cp.parse(data, undefined, undefined)).equal(data);
+            expect(cp.parse(data, undefined, undefined)).eq(data);
         });
 
         it('should throw for unknown encoding', () => {
@@ -47,11 +48,13 @@ describe('ContentParser', () => {
 
         it('should throw for unknown MIME-type', () => {
             const data = {a: 'abc'};
-            expect(cp.parse.bind(cp, Buffer.from(qs.stringify(data)), undefined, 'application/x-www-form-urlencoded')).throw();
+            expect(cp.parse.bind(cp, Buffer.from(qs.stringify(data)), undefined, 'application/x-www-form-urlencoded'))
+                .throw();
         });
 
         it('should throw for unknown charset', () => {
-            expect(cp.parse.bind(cp, Buffer.from([0xAA, 0xE0, 0xAE, 0xAB, 0xA8, 0xAA]), undefined, 'text/plain; charset=IBM866')).throw();
+            expect(cp.parse.bind(cp, Buffer.from([0xAA, 0xE0, 0xAE, 0xAB, 0xA8, 0xAA]), undefined,
+                'text/plain; charset=IBM866')).throw();
         });
     });
 
@@ -61,7 +64,7 @@ describe('ContentParser', () => {
         it('should set decoder', () => {
             cp.setDecoder('gzip', gunzipSync);
             const data = 'The quick brown fox jumps over the lazy dog';
-            expect(cp.parse(gzipSync(Buffer.from(data)), 'gzip', 'text/plain')).equal(data);
+            expect(cp.parse(gzipSync(Buffer.from(data)), 'gzip', 'text/plain')).eq(data);
         });
     });
 
@@ -71,7 +74,7 @@ describe('ContentParser', () => {
         it('should set default decoder', () => {
             cp.setDefaultDecoder(gunzipSync);
             const data = 'The quick brown fox jumps over the lazy dog';
-            expect(cp.parse(gzipSync(Buffer.from(data)), undefined, 'text/plain')).equal(data);
+            expect(cp.parse(gzipSync(Buffer.from(data)), undefined, 'text/plain')).eq(data);
         });
     });
 
@@ -81,7 +84,8 @@ describe('ContentParser', () => {
         it('should set MIME-type parser', () => {
             cp.setParser('application/x-www-form-urlencoded', parseQs);
             const data = {a: 'abc'};
-            expect(cp.parse(Buffer.from(qs.stringify(data)), undefined, 'application/x-www-form-urlencoded')).deep.equal(data);
+            expect(cp.parse(Buffer.from(qs.stringify(data)), undefined, 'application/x-www-form-urlencoded'))
+                .deep.eq(data);
         });
     });
 
@@ -91,7 +95,7 @@ describe('ContentParser', () => {
         it('should set default MIME-type parser', () => {
             cp.setDefaultParser(parseQs);
             const data = {a: 'abc'};
-            expect(cp.parse(Buffer.from(qs.stringify(data)), undefined, undefined)).deep.equal(data);
+            expect(cp.parse(Buffer.from(qs.stringify(data)), undefined, undefined)).deep.eq(data);
         });
     });
 });

@@ -57,6 +57,7 @@ export class Client extends EventEmitter {
     private queueBindings = [] as IQueueBinding[];
     private setupPromise: Promise<void> | null = null;
     private setupTasks = [] as Task[];
+    private closed = false;
 
     constructor(
         private chanWrap: IChannelWrapper<Channel>,
@@ -176,8 +177,9 @@ export class Client extends EventEmitter {
 
     public restoreQueue(queueName: string | number): void {
         const queue = this.queues.get(queueName);
+        /* istanbul ignore next: if */
         if (!queue) {
-            console.error(new Error(`BUG: Client.restoreQueue() failed: queue ${queueName} not declared`));
+            console.error(new Error(`BUG: Client#restoreQueue(): queue ${queueName} not declared`));
             return;
         }
 
@@ -192,6 +194,11 @@ export class Client extends EventEmitter {
             b.bound = false;
             this.deferBindQueue(b);
         });
+    }
+
+    public close(): Promise<void> {
+        this.closed = true;
+        return this.chanWrap.close();
     }
 
     private deferDeclareExchange(name: string, exData: IExchangeData): void {
@@ -219,7 +226,9 @@ export class Client extends EventEmitter {
 
     private deferDeclareTmpQueue(queueData: IQueueData): void {
         this.deferSetup(async (chan: Channel, chanHandler: ChannelHandler): Promise<void> => {
-            const {queue: name} = await chan.assertQueue('', queueData.opts.declare);
+            const {queue: name} = await chan.assertQueue('', Object.assign({
+                exclusive: true,
+            }, queueData.opts.declare));
             await chan.consume(name, queueData.cb.bind(null, chanHandler), queueData.opts.consume);
             queueData.declared = true;
         });
@@ -234,8 +243,9 @@ export class Client extends EventEmitter {
 
     private deferBindQueue(b: IQueueBinding): void {
         const queue = this.queues.get(b.dest);
+        /* istanbul ignore next: if */
         if (!queue) {
-            throw new Error(`Cannot bind: queue ${b.dest} not declared`);
+            throw new Error(`BUG: Client#deferBindQueue(): queue ${b.dest} not declared`);
         }
         this.deferSetup(async (chan: Channel): Promise<void> => {
             await chan.bindQueue(queue.name, b.src, b.routingKey, b.headers);
@@ -256,17 +266,20 @@ export class Client extends EventEmitter {
             if (!chan) {
                 throw new Error('Cannot create channel');
             }
+            /* istanbul ignore next: else */
             const chanHandler = this.chanHandlerCache.get(chan) || new ChannelHandler(chan);
             this.chanHandlerCache.set(chan, chanHandler);
             while (this.setupTasks.length > 0) {
                 const tasks = this.setupTasks;
                 this.setupTasks = [];
-                tasks.forEach(async (task) => {
-                    await task(chan, chanHandler);
-                });
+                for (let i = 0; i < tasks.length; ++i) {
+                    await tasks[i](chan, chanHandler);
+                }
             }
+            this.emit('setup');
         } catch (err) {
-            this.emit('setup-failed', err);
+            this.closed = true;
+            this.emit('setupFailed', err);
         } finally {
             this.setupPromise = null;
         }
@@ -278,6 +291,11 @@ export class Client extends EventEmitter {
     }
 
     private onClose(): void {
+        if (this.closed) {
+            this.emit('close');
+            return;
+        }
+
         Array.from(this.exchanges.entries()).forEach(([name, exData]) => {
             exData.declared = false;
             this.deferDeclareExchange(name, exData);
@@ -298,5 +316,7 @@ export class Client extends EventEmitter {
             b.bound = false;
             this.deferBindQueue(b);
         });
+
+        this.emit('close');
     }
 }

@@ -33,7 +33,7 @@ class Exchange {
         internal: boolean,
         opts: IExchangeOptions | undefined,
     ) {
-        this.client.declareExchange(name, exType, Object.assign({}, {
+        this.client.declareExchange(name, exType, Object.assign({
             internal,
             durable: true,
             autoDelete: false,
@@ -57,22 +57,26 @@ class Exchange {
         }
     }
 
-    protected fanoutImpl(exchange: string, routingArgs: RoutingArgs, options: IExchangeOptions | undefined): IFanoutExchange {
+    protected fanoutImpl(exchange: string, routingArgs: RoutingArgs, options: IExchangeOptions | undefined
+    ): IFanoutExchange {
         const e = new FanoutExchange(this.client, this.parseContent, exchange, true, options);
         return this.exchangeImpl(e, routingArgs);
     }
 
-    protected directImpl(exchange: string, routingArgs: RoutingArgs, options: IExchangeOptions | undefined): IDirectExchange {
+    protected directImpl(exchange: string, routingArgs: RoutingArgs, options: IExchangeOptions | undefined
+    ): IDirectExchange {
         const e = new DirectExchange(this.client, this.parseContent, exchange, true, options);
         return this.exchangeImpl(e, routingArgs);
     }
 
-    protected topicImpl(exchange: string, routingArgs: RoutingArgs, options: IExchangeOptions | undefined): ITopicExchange {
+    protected topicImpl(exchange: string, routingArgs: RoutingArgs, options: IExchangeOptions | undefined
+    ): ITopicExchange {
         const e = new TopicExchange(this.client, this.parseContent, exchange, true, options);
         return this.exchangeImpl(e, routingArgs);
     }
 
-    protected headersImpl(exchange: string, routingArgs: RoutingArgs, options: IExchangeOptions | undefined): IHeadersExchange {
+    protected headersImpl(exchange: string, routingArgs: RoutingArgs, options: IExchangeOptions | undefined
+    ): IHeadersExchange {
         const e = new HeadersExchange(this.client, this.parseContent, exchange, true, options);
         return this.exchangeImpl(e, routingArgs);
     }
@@ -97,7 +101,7 @@ export class FanoutExchange extends Exchange implements IFanoutExchange {
         parseContent: ParseContent,
         name: string,
         internal: boolean,
-        opts?: IExchangeOptions,
+        opts: IExchangeOptions | undefined,
     ) {
         super(client, parseContent, name, 'fanout', internal, opts);
     }
@@ -119,7 +123,7 @@ export class FanoutExchange extends Exchange implements IFanoutExchange {
                 routingArgs: '',
                 mw: args[1] as ConsumeMiddleware<T>,
             });
-        } else if (typeof args[0] === 'function') {
+        } else {
             return super.consumeImpl({
                 routingArgs: '',
                 mw: args[0] as ConsumeMiddleware<T>,
@@ -203,7 +207,7 @@ export class DirectExchange extends RoutableExchange<string | string[]> implemen
         parseContent: ParseContent,
         name: string,
         internal: boolean,
-        opts?: IExchangeOptions,
+        opts: IExchangeOptions | undefined,
     ) {
         super(client, parseContent, name, 'direct', internal, opts);
     }
@@ -215,7 +219,7 @@ export class TopicExchange extends RoutableExchange<string | string[]> implement
         parseContent: ParseContent,
         name: string,
         internal: boolean,
-        opts?: IExchangeOptions,
+        opts: IExchangeOptions | undefined,
     ) {
         super(client, parseContent, name, 'topic', internal, opts);
     }
@@ -227,7 +231,7 @@ export class HeadersExchange extends RoutableExchange<IRoutingHeaders> implement
         parseContent: ParseContent,
         name: string,
         internal: boolean,
-        opts?: IExchangeOptions,
+        opts: IExchangeOptions | undefined,
     ) {
         super(client, parseContent, name, 'headers', internal, opts);
     }

@@ -19,6 +19,25 @@
   },
   "plugins": ["@typescript-eslint"],
   "rules": {
+    "indent": [
+      "error",
+      4,
+      {
+        "FunctionDeclaration": {
+          "parameters": 1
+        },
+        "FunctionExpression": {
+          "parameters": 1
+        },
+        "SwitchCase": 1
+      }
+    ],
+    "max-len": [
+      "warn",
+      {
+        "code": 120
+      }
+    ],
     "@typescript-eslint/explicit-module-boundary-types": [
       "error",
       {

@@ -32,11 +32,11 @@ const namedQueueOptions: IQueueOptionsStrict = {
     consume: {
         noAck: false,
         exclusive: false,
-    }
+    },
 };
 
 export class Queue implements IQueue {
-    public readonly name: string | number;
+    private readonly name: string | number;
     private consumers = [] as IConsumer[];
     private defaultMiddleware?: ConsumeMiddleware<any>;
 
@@ -48,7 +48,8 @@ export class Queue implements IQueue {
         ...args: any[]) {
         if (typeof args[0] === 'string') {
             this.name = args[0];
-            this.client.declareQueue(this.name, mergeQueueOpts(args[1] as IQueueOptions, namedQueueOptions), this.onMessage.bind(this));
+            this.client.declareQueue(this.name, mergeQueueOpts(args[1] as IQueueOptions, namedQueueOptions),
+                this.onMessage.bind(this));
         } else {
             const noAck = args[0] as boolean | undefined;
             this.name = this.client.declareTmpQueue(this.onMessage.bind(this), noAck === undefined ? true : noAck);
@@ -59,7 +60,8 @@ export class Queue implements IQueue {
         this.defaultMiddleware = mw;
     }
 
-    public consumeRouting<T = any>(mw: ConsumeMiddleware<T>, exchange: string, routingArg: string | IRoutingHeaders): void {
+    public consumeRouting<T = any>(mw: ConsumeMiddleware<T>, exchange: string, routingArg: string | IRoutingHeaders
+    ): void {
         const cons: IConsumer = {
             mw,
         };
@@ -101,10 +103,13 @@ export class Queue implements IQueue {
             }
             return true;
         });
+
         if (cons) {
             cons.mw(msg);
         } else if (this.defaultMiddleware) {
             this.defaultMiddleware(msg);
+        } else {
+            this.client.emit('unhandledMessage', msg, this.name);
         }
     }
 }
